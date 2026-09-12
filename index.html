@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Viaggi</title>
+<meta name="theme-color" content="#0E1A2B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Viaggi">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#0E1A2B;
+  --paper:#FBF6EC;
+  --paper-2:#F2EBDA;
+  --gold:#C89B3C;
+  --gold-deep:#9C7526;
+  --slate:#6B7A90;
+  --slate-2:#9AA7B8;
+  --text-dark:#1B2430;
+  --text-mute:#5B6675;
+  --line:#DCD2B8;
+  --danger:#B65C38;
+  --ok:#3E6B4F;
+  --radius:18px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--ink);
+  background-image:
+    radial-gradient(circle at 15% 8%, rgba(200,155,60,0.10), transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(200,155,60,0.06), transparent 45%);
+  color:var(--paper);
+  font-family:'Inter',system-ui,sans-serif;
+  min-height:100vh;
+  padding-bottom:48px;
+}
+::selection{background:var(--gold); color:var(--ink);}
+button{font-family:inherit;}
+input,textarea,select{font-family:inherit;}
+
+/* Header */
+header.top{
+  padding:28px 20px 18px;
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+header.top .eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin:0 0 6px;
+}
+header.top h1{
+  font-family:'Archivo',sans-serif;
+  font-weight:800;
+  font-size:34px;
+  letter-spacing:-.01em;
+  margin:0;
+  color:var(--paper);
+}
+header.top .sub{
+  margin:6px 0 0;
+  font-size:13.5px;
+  color:var(--slate-2);
+}
+.menu-btn{
+  width:42px; height:42px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  color:var(--paper);
+  font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  flex-shrink:0;
+  margin-top:4px;
+}
+
+.stats-row{
+  display:flex;
+  gap:10px;
+  margin:18px 20px 4px;
+}
+.stat-chip{
+  flex:1;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;
+  padding:10px 12px;
+}
+.stat-chip .n{
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:20px;
+  color:var(--paper);
+  line-height:1;
+}
+.stat-chip .l{
+  font-size:10.5px;
+  color:var(--slate-2);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin-top:4px;
+}
+
+.filters{
+  display:flex;
+  gap:8px;
+  margin:20px 20px 6px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.filters::-webkit-scrollbar{display:none;}
+.filter-btn{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  letter-spacing:.03em;
+  padding:8px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:transparent;
+  color:var(--slate-2);
+  white-space:nowrap;
+  cursor:pointer;
+}
+.filter-btn.active{
+  background:var(--gold);
+  border-color:var(--gold);
+  color:var(--ink);
+  font-weight:600;
+}
+
+.dest-filter{
+  position:relative;
+  margin:14px 20px 4px;
+  display:flex;
+  align-items:center;
+}
+.dest-filter input{
+  width:100%;
+  padding:11px 38px 11px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.04);
+  color:var(--paper);
+  font-size:13.5px;
+}
+.dest-filter input::placeholder{color:var(--slate-2);}
+.dest-filter input:focus{outline:none; border-color:var(--gold);}
+.dest-filter #destClear{
+  position:absolute;
+  right:8px;
+  width:26px; height:26px;
+  border-radius:50%;
+  border:none;
+  background:rgba(255,255,255,0.1);
+  color:var(--slate-2);
+  font-size:12px;
+  cursor:pointer;
+  display:none;
+  align-items:center; justify-content:center;
+}
+.dest-filter #destClear.show{display:flex;}
+
+.list{
+  padding:14px 16px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.new-trip-btn{
+  margin:4px 16px 0;
+  padding:13px;
+  border-radius:14px;
+  border:1.5px dashed rgba(255,255,255,0.22);
+  background:transparent;
+  color:var(--slate-2);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  text-align:center;
+}
+
+.ticket{
+  position:relative;
+  background:var(--paper);
+  border-radius:var(--radius);
+  color:var(--text-dark);
+  cursor:pointer;
+  box-shadow:0 14px 30px -12px rgba(0,0,0,0.55);
+  transition:transform .15s ease;
+  overflow:hidden;
+}
+.ticket:active{transform:scale(0.985);}
+
+.ticket-main{
+  display:flex;
+  align-items:center;
+  padding:18px 18px 16px;
+  gap:14px;
+}
+.route{
+  flex:1;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.route .city{
+  font-family:'Archivo',sans-serif;
+  font-weight:700;
+  font-size:16.5px;
+  line-height:1.15;
+  min-width:0;
+}
+.route .city span{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:500;
+  letter-spacing:.08em;
+  color:var(--text-mute);
+  text-transform:uppercase;
+  margin-bottom:2px;
+}
+.route .plane-track{
+  flex:1;
+  position:relative;
+  height:1px;
+  background:repeating-linear-gradient(to right, var(--line) 0 6px, transparent 6px 11px);
+  margin:0 2px;
+}
+.route .plane-track:after{
+  content:'✈';
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  font-size:13px;
+  color:var(--gold-deep);
+  background:var(--paper);
+  padding:0 4px;
+}
+.ticket-legs{
+  padding:0 18px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.ticket-leg-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+}
+.ticket-leg-time{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--text-mute);
+  white-space:nowrap;
+}
+.ticket-leg-route{
+  font-family:'Archivo',sans-serif;
+  font-weight:600;
+  font-size:12.5px;
+  color:var(--text-dark);
+  text-align:right;
+}
+.ticket-total{
+  margin:0 18px 14px;
+  background:linear-gradient(135deg, rgba(200,155,60,0.18), rgba(200,155,60,0.08));
+  border:1px solid rgba(200,155,60,0.4);
+  border-radius:10px;
+  padding:8px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.ticket-total .label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--gold-deep);
+}
+.ticket-total .amt{
+  font-family:'Archivo',sans-serif;
+  font-weight:800;
+  font-size:15px;
+  color:var(--gold-deep);
+}
+.perf{
+  position:relative;
+  height:0;
+  border-top:1.5px dashed var(--line);
+  margin:0 18px;
+}
+.perf:before,.perf:after{
+  content:'';
+  position:absolute;
+  top:-9px;
+  width:18px; height:18px;
+  border-radius:50%;
+  background:var(--ink);
+}
+.perf:before{left:-27px;}
+.perf:after{right:-27px;}
+
+.ticket-foot{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 18px 14px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--text-mute);
+}
+.ticket-foot .badges{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
+.mini-badge{
+  background:var(--paper-2);
+  border-radius:999px;
+  padding:3px 9px;
+  font-size:10.5px;
+}
+.confirmed-stamp{
+  font-family:'Archivo',sans-serif;
+  font-size:9.5px;
+  font-weight:800;
+  letter-spacing:.09em;
+  color:var(--ok);
+  border:1.4px solid var(--ok);
+  border-radius:5px;
+  padding:2px 6px;
+  transform:rotate(-4deg);
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.pending-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px;
+  color:var(--text-mute);
+  border:1px dashed var(--line);
+  border-radius:5px;
+  padding:2px 6px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  white-space:nowrap;
+}
+.done-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px;
+  font-weight:700;
+  color:var(--text-mute);
+  background:var(--paper-2);
+  border:1px solid var(--line);
+  border-radius:5px;
+  padding:2px 6px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  white-space:nowrap;
+}
+
+.empty-state{
+  text-align:center;
+  padding:60px 24px;
+  color:var(--slate-2);
+  font-size:14px;
+}
+
+/* Overlay + sheet (riusato per dettaglio e menu) */
+.overlay{
+  position:fixed; inset:0;
+  background:rgba(6,10,18,0.6);
+  backdrop-filter:blur(2px);
+  opacity:0; pointer-events:none;
+  transition:opacity .22s ease;
+  z-index:40;
+}
+.overlay.open{opacity:1; pointer-events:auto;}
+
+.sheet{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  max-height:92vh;
+  background:var(--ink);
+  border-radius:26px 26px 0 0;
+  transform:translateY(100%);
+  transition:transform .28s cubic-bezier(.22,.8,.32,1);
+  z-index:41;
+  overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom,24px);
+  box-shadow:0 -20px 60px rgba(0,0,0,0.5);
+}
+.sheet.open{transform:translateY(0);}
+.sheet-handle{
+  width:40px; height:4px;
+  background:rgba(255,255,255,0.2);
+  border-radius:4px;
+  margin:12px auto 4px;
+}
+.sheet-close{
+  position:absolute;
+  top:16px; right:16px;
+  width:34px; height:34px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.08);
+  border:none;
+  color:var(--paper);
+  font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  z-index:2;
+}
+
+.sheet-header{padding:18px 60px 4px 22px;}
+.sheet-header .eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin:0 0 6px;
+}
+.sheet-header h2{
+  font-family:'Archivo',sans-serif;
+  font-size:24px;
+  font-weight:800;
+  margin:0 0 4px;
+  color:var(--paper);
+}
+.sheet-header .status-line{
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  margin:10px 0 4px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  color:var(--slate-2);
+}
+.action-row{
+  display:flex; gap:8px; flex-wrap:wrap;
+  padding:14px 22px 0;
+}
+.btn{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  padding:9px 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.16);
+  background:rgba(255,255,255,0.05);
+  color:var(--paper);
+  cursor:pointer;
+}
+.btn.primary{background:var(--gold); border-color:var(--gold); color:var(--ink);}
+.btn.danger{background:rgba(182,92,56,0.15); border-color:var(--danger); color:#E3A98C;}
+.btn.ghost{background:transparent;}
+.btn:active{opacity:.8;}
+
+.section{padding:18px 22px 6px;}
+.section-title{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin:0 0 12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.section-title:after{content:''; flex:1; height:1px; background:rgba(255,255,255,0.1);}
+
+.leg-card{
+  background:var(--paper);
+  border-radius:16px;
+  color:var(--text-dark);
+  padding:16px 16px 14px;
+  margin-bottom:12px;
+}
+.leg-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px;}
+.leg-route{font-family:'Archivo',sans-serif; font-weight:700; font-size:16px; display:flex; align-items:center; gap:8px;}
+.leg-route .arrow{color:var(--gold-deep); font-size:14px;}
+.leg-when{text-align:right; font-family:'IBM Plex Mono',monospace;}
+.leg-when .d{font-size:12.5px; font-weight:600;}
+.leg-when .t{font-size:11px; color:var(--text-mute);}
+.leg-row{display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0; border-top:1px solid var(--paper-2); color:var(--text-mute);}
+.leg-row:first-of-type{border-top:none; margin-top:2px;}
+.leg-row .val{font-family:'IBM Plex Mono',monospace; color:var(--text-dark); text-align:right;}
+.leg-note{margin-top:8px; background:#F3E3DA; color:var(--danger); font-size:11.5px; padding:6px 10px; border-radius:8px; font-weight:600;}
+
+.hotel-card{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:16px;
+  padding:14px 16px;
+  margin-bottom:10px;
+}
+.hotel-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.hotel-name{font-family:'Archivo',sans-serif; font-weight:700; font-size:14.5px; color:var(--paper);}
+.hotel-price{font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--gold); font-size:14px; white-space:nowrap;}
+.hotel-sub{font-size:11.5px; color:var(--slate-2); margin-top:6px; display:flex; gap:10px; flex-wrap:wrap;}
+.hotel-alt-tag{display:inline-block; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase; background:rgba(200,155,60,0.15); color:var(--gold); padding:3px 8px; border-radius:6px;}
+
+.total-row{display:flex; justify-content:space-between; align-items:center; padding:16px 22px 28px; margin-top:6px;}
+.total-row .label{font-size:12.5px; color:var(--slate-2); text-transform:uppercase; letter-spacing:.06em; font-family:'IBM Plex Mono',monospace;}
+.total-row .amount{font-family:'Archivo',sans-serif; font-weight:800; font-size:24px; color:var(--paper);}
+
+/* Edit form */
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.field{margin-bottom:8px;}
+.field.full{grid-column:1/-1;}
+.field label{display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-mute); margin-bottom:4px;}
+.field input, .field select{
+  width:100%;
+  padding:9px 10px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--text-dark);
+  font-size:13px;
+}
+.edit-card{background:var(--paper); border-radius:16px; padding:14px; margin-bottom:12px; color:var(--text-dark);}
+.edit-card-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+.edit-card-head .idx{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-mute); text-transform:uppercase; letter-spacing:.06em;}
+.remove-mini{background:none; border:none; color:var(--danger); font-size:11px; font-family:'IBM Plex Mono',monospace; font-weight:600; cursor:pointer;}
+.add-card-btn{width:100%; padding:12px; border-radius:12px; border:1.5px dashed rgba(255,255,255,0.25); background:transparent; color:var(--slate-2); font-size:12.5px; font-weight:600; cursor:pointer; margin-bottom:10px;}
+.checkbox-field{display:flex; align-items:center; gap:8px; padding:4px 0 12px;}
+.checkbox-field input{width:18px; height:18px;}
+.checkbox-field label{font-size:13px; color:var(--paper); font-family:'Inter',sans-serif;}
+
+/* Menu sheet */
+.menu-item{
+  display:flex; align-items:center; gap:12px;
+  width:100%;
+  padding:14px 22px;
+  background:none; border:none;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  color:var(--paper);
+  font-size:14.5px;
+  text-align:left;
+  cursor:pointer;
+}
+.menu-item .ic{font-size:17px; width:22px; text-align:center;}
+.menu-item .desc{display:block; font-size:11.5px; color:var(--slate-2); margin-top:2px;}
+.menu-item.danger{color:#E3A98C;}
+
+/* JSON modal */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(6,10,18,0.7);
+  display:none; align-items:center; justify-content:center; z-index:60; padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:var(--ink); border:1px solid rgba(255,255,255,0.1);
+  border-radius:18px; width:100%; max-width:600px; max-height:80vh;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.modal-box .mh{padding:16px 18px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08);}
+.modal-box .mh h3{margin:0; font-family:'Archivo',sans-serif; font-size:16px;}
+.modal-box textarea{
+  flex:1; min-height:260px; margin:14px 18px 0; padding:12px;
+  background:#0A1420; color:#B9E6C4; border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; resize:vertical;
+}
+.modal-box .mf{padding:14px 18px 18px; display:flex; gap:8px; justify-content:flex-end;}
+
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px);
+  background:var(--paper); color:var(--text-dark); padding:11px 18px;
+  border-radius:12px; font-size:13px; font-weight:600;
+  box-shadow:0 12px 30px rgba(0,0,0,0.4);
+  opacity:0; pointer-events:none; transition:all .25s ease; z-index:80;
+  max-width:88vw; text-align:center;
+}
+.toast.show{opacity:1; transform:translate(-50%,0);}
+
+#fileInputExcel, #fileInputJson{display:none;}
+
+@media (min-width:600px){
+  .list{max-width:640px; margin:0 auto;}
+  header.top, .stats-row, .filters, .dest-filter{max-width:640px; margin-left:auto; margin-right:auto;}
+  .sheet{max-width:640px; left:50%; transform:translate(-50%,100%);}
+  .sheet.open{transform:translate(-50%,0);}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <p class="eyebrow">Itinerario</p>
+    <h1>Viaggi</h1>
+    <p class="sub" id="subCount">— viaggi in programma</p>
+  </div>
+  <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+</header>
+
+<div class="stats-row" id="statsRow"></div>
+
+<div class="filters" id="filters">
+  <button class="filter-btn active" data-f="prossimi">Prossimi</button>
+  <button class="filter-btn" data-f="confermati">Confermati</button>
+  <button class="filter-btn" data-f="attesa">Da confermare</button>
+  <button class="filter-btn" data-f="effettuati">Effettuati</button>
+  <button class="filter-btn" data-f="tutti">Tutti</button>
+</div>
+
+<div class="dest-filter">
+  <input type="text" id="destFilter" list="destList" placeholder="Filtra per destinazione…" autocomplete="off">
+  <datalist id="destList"></datalist>
+  <button id="destClear" aria-label="Cancella filtro destinazione">✕</button>
+</div>
+
+<div class="list" id="list"></div>
+<button class="new-trip-btn" id="newTripBtn">+ Nuovo viaggio</button>
+
+<!-- Dettaglio / edit viaggio -->
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="sheetClose">✕</button>
+  <div id="sheetContent"></div>
+</div>
+
+<!-- Menu -->
+<div class="overlay" id="menuOverlay"></div>
+<div class="sheet" id="menuSheet">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="menuClose">✕</button>
+  <div class="sheet-header" style="padding-top:14px;">
+    <p class="eyebrow">Dati</p>
+    <h2 style="font-size:20px;">Gestione dati</h2>
+  </div>
+  <div style="padding-top:8px;">
+    <button class="menu-item" id="mImportExcel"><span class="ic">📥</span><span><b>Importa da Excel</b><span class="desc">Sostituisce i viaggi con quelli del foglio (.xlsx)</span></span></button>
+    <button class="menu-item" id="mExportExcel"><span class="ic">📤</span><span><b>Esporta in Excel</b><span class="desc">Scarica il file .xlsx aggiornato</span></span></button>
+    <button class="menu-item" id="mExportJsonFile"><span class="ic">🗂️</span><span><b>Esporta JSON (file)</b><span class="desc">Scarica viaggi.json</span></span></button>
+    <button class="menu-item" id="mShowJson"><span class="ic">{ }</span><span><b>Mostra JSON (testo)</b><span class="desc">Visualizza e copia il JSON</span></span></button>
+    <button class="menu-item" id="mImportJson"><span class="ic">📋</span><span><b>Importa JSON</b><span class="desc">Ripristina da un backup .json</span></span></button>
+    <button class="menu-item" id="mEnablePush"><span class="ic">🔔</span><span><b>Notifiche cancellazione hotel</b><span class="desc">Avviso alle 10:00 quando mancano 1-3 giorni alla scadenza</span></span></button>
+    <button class="menu-item danger" id="mReset"><span class="ic">↺</span><span><b>Ripristina dati di esempio</b><span class="desc">Torna ai dati originali del foglio</span></span></button>
+  </div>
+</div>
+
+<input type="file" id="fileInputExcel" accept=".xlsx,.xls">
+<input type="file" id="fileInputJson" accept=".json,application/json">
+
+<!-- Modal JSON testo -->
+<div class="modal-overlay" id="jsonModalOverlay">
+  <div class="modal-box">
+    <div class="mh"><h3>JSON viaggi</h3><button class="sheet-close" style="position:static" id="jsonModalClose">✕</button></div>
+    <textarea id="jsonText" readonly></textarea>
+    <div class="mf">
+      <button class="btn" id="jsonCopyBtn">Copia negli appunti</button>
+      <button class="btn primary" id="jsonModalOk">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================= DATI DI DEFAULT ======================= */
+const DEFAULT_TRIPS = [{"id":1,"confermato":true,"data":"25/07/2026","dataIso":"2026-07-25","orario":"07:00-08:10","partenza":"Roma Fiumicino","arrivo":"Cagliari","persone":3,"legs":[{"data":"25/07/2026","dataIso":"2026-07-25","orario":"07:00-08:10","compagnia":"Aeroitalia","codice":"LFIF6B","prezzo":145.0,"partenza":"Roma Fiumicino","arrivo":"Cagliari","parcheggioCodice":2733328.0,"parcheggioPrezzo":39.7,"parcheggioTipo":"pagato solo giorno 1","trasporto":"avis 1692-2288-IT-5","trasportoCosto":76.2,"totale":367.2666666666667,"note":null},{"data":"26/07/2026","dataIso":"2026-07-26","orario":"21:40-22:50","compagnia":"Aeroitalia","codice":null,"prezzo":null,"partenza":"Cagliari","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[],"totale":367.27},{"id":2,"confermato":true,"data":"20/08/2026","dataIso":"2026-08-20","orario":"07:00-08:10","partenza":"Roma Fiumicino","arrivo":"Cagliari","persone":3,"legs":[{"data":"20/08/2026","dataIso":"2026-08-20","orario":"07:00-08:10","compagnia":"Aeroitalia","codice":"C2FHML","prezzo":140.5,"partenza":"Roma Fiumicino","arrivo":"Cagliari","parcheggioCodice":null,"parcheggioPrezzo":63.0,"parcheggioTipo":"FCOAirportPArking","trasporto":"avis 1232-9435-IT-6 ","trasportoCosto":299.38,"totale":522.5866666666667,"note":null},{"data":"30/08/2026","dataIso":"2026-08-30","orario":"20:10-21:20","compagnia":"Aeroitalia","codice":null,"prezzo":null,"partenza":"Cagliari","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[],"totale":522.59},{"id":3,"confermato":true,"data":"18/09/2026","dataIso":"2026-09-18","orario":"19:40-20:50","partenza":"Roma Fiumicino","arrivo":"Cagliari","persone":3,"legs":[{"data":"18/09/2026","dataIso":"2026-09-18","orario":"19:40-20:50","compagnia":"Aeroitalia","codice":"HFULMB","prezzo":127.48,"partenza":"Roma Fiumicino","arrivo":"Cagliari","parcheggioCodice":2733348.0,"parcheggioPrezzo":49.2,"parcheggioTipo":"pagato solo giorno 1","trasporto":"avis 1712-8453-IT-6","trasportoCosto":76.2,"totale":338.56,"note":null},{"data":"20/09/2026","dataIso":"2026-09-20","orario":"20:10-21:20","compagnia":"Aeroitalia","codice":null,"prezzo":null,"partenza":"Cagliari","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[],"totale":338.56},{"id":4,"confermato":true,"data":"16/10/2026","dataIso":"2026-10-16","orario":"06:10-09:55","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"16/10/2026","dataIso":"2026-10-16","orario":"06:10-09:55","compagnia":"Wizzair","codice":"IHWRYI","prezzo":103.84,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":2647868.0,"parcheggioPrezzo":25.7,"parcheggioTipo":"prepagato full","trasporto":"autoreisen 5490568","trasportoCosto":86.46,"totale":800.2,"note":null},{"data":"18/10/2026","dataIso":"2026-10-18","orario":"18:35-23:50","compagnia":"Ryanair","codice":"M5ZD2U","prezzo":86.24,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":307.88,"cancellazione":null,"data":null,"note":null}],"totale":800.2},{"id":5,"confermato":false,"data":"17/10/2026","dataIso":"2026-10-17","orario":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"17/10/2026","dataIso":"2026-10-17","orario":null,"compagnia":null,"codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":461.82,"note":null},{"data":"20/10/2026","dataIso":"2026-10-20","orario":null,"compagnia":null,"codice":null,"prezzo":null,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":461.82,"cancellazione":null,"data":null,"note":null}],"totale":461.82},{"id":6,"confermato":false,"data":"14/11/2026","dataIso":"2026-11-14","orario":"06:20-10:05","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"14/11/2026","dataIso":"2026-11-14","orario":"06:20-10:05","compagnia":"Wizzair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":196.26,"note":null},{"data":"15/11/2026","dataIso":"2026-11-15","orario":"19:05-00:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":196.26,"cancellazione":"06.11","data":null,"note":null}],"totale":196.26},{"id":7,"confermato":false,"data":"28/11/2026","dataIso":"2026-11-28","orario":"06:20-10:05","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"28/11/2026","dataIso":"2026-11-28","orario":"06:20-10:05","compagnia":"Wizzair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":196.26,"note":null},{"data":"29/11/2026","dataIso":"2026-11-29","orario":"19:05-00:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":196.26,"cancellazione":"20.11","data":null,"note":null}],"totale":196.26},{"id":8,"confermato":false,"data":"05/12/2026","dataIso":"2026-12-05","orario":"15:40-19:00","partenza":"Roma Fiumicino","arrivo":"Fuerteventura","persone":2,"legs":[{"data":"05/12/2026","dataIso":"2026-12-05","orario":"15:40-19:00","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Fuerteventura","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":440.83,"note":null},{"data":"08/12/2026","dataIso":"2026-12-08","orario":"18:20-23:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Fuerteventura","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Elba Lucia AO","prezzo":61.44,"cancellazione":"27.11","data":null,"note":null},{"nome":"Fuerteventura Mar AI","prezzo":379.39,"cancellazione":null,"data":null,"note":null}],"totale":440.83},{"id":9,"confermato":true,"data":"06/01/2027","dataIso":"2027-01-06","orario":"06:20-10:10","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":4,"legs":[{"data":"06/01/2027","dataIso":"2027-01-06","orario":"06:20-10:10","compagnia":"Wizzair","codice":"MGWW8S","prezzo":98.99,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":"autoreisen 5731487","trasportoCosto":152.18,"totale":1065.4199999999998,"note":"Cancellare volo ritorno Wizzair"},{"data":"10/01/2027","dataIso":"2027-01-10","orario":"19:05-00:20","compagnia":"Ryanair","codice":"B4CPGA","prezzo":71.74,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB superior","prezzo":647.87,"cancellazione":null,"data":null,"note":"Cancellare volo ritorno Wizzair"}],"totale":1065.42},{"id":10,"confermato":false,"data":"23/01/2027","dataIso":"2027-01-23","orario":"06:20-10:05","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"23/01/2027","dataIso":"2027-01-23","orario":"06:20-10:05","compagnia":"Wizzair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":170.73,"note":null},{"data":"24/01/2027","dataIso":"2027-01-24","orario":"19:05-00:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":170.73,"cancellazione":"15.01","data":null,"note":null}],"totale":170.73},{"id":11,"confermato":false,"data":"06/02/2027","dataIso":"2027-02-06","orario":"06:20-10:05","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"06/02/2027","dataIso":"2027-02-06","orario":"06:20-10:05","compagnia":"Wizzair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":185.32,"note":null},{"data":"07/02/2027","dataIso":"2027-02-07","orario":"19:05-00:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":185.32,"cancellazione":"29.01","data":null,"note":null}],"totale":185.32},{"id":12,"confermato":false,"data":"20/02/2027","dataIso":"2027-02-20","orario":"06:20-10:05","partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","persone":2,"legs":[{"data":"20/02/2027","dataIso":"2027-02-20","orario":"06:20-10:05","compagnia":"Wizzair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Tenerife Sud","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":185.32,"note":null},{"data":"21/02/2027","dataIso":"2027-02-21","orario":"19:05-00:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Tenerife Sud","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":null}],"hotels":[{"nome":"Barcelo Santiago HB deluxe","prezzo":185.32,"cancellazione":"12.02","data":null,"note":null}],"totale":185.32},{"id":13,"confermato":false,"data":"06/03/2027","dataIso":"2027-03-06","orario":"15:40-19:00","partenza":"Roma Fiumicino","arrivo":"Fuerteventura","persone":4,"legs":[{"data":"06/03/2027","dataIso":"2027-03-06","orario":"15:40-19:00","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Fuerteventura","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":488.1,"note":null},{"data":"09/03/2027","dataIso":"2027-03-09","orario":"18:20-23:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Fuerteventura","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":"Alternativa 1"}],"hotels":[{"nome":"Elba Lucia BB","prezzo":80.98,"cancellazione":"26.02","data":null,"note":null},{"nome":"Fuerteventura Mar AI","prezzo":407.12,"cancellazione":null,"data":null,"note":"Alternativa 1"},{"nome":"Jandia Playa Ocean View AI","prezzo":275.78,"cancellazione":null,"data":null,"note":"Alternativa 2"}],"totale":488.1},{"id":14,"confermato":false,"data":"20/03/2027","dataIso":"2027-03-20","orario":"15:40-19:00","partenza":"Roma Fiumicino","arrivo":"Fuerteventura","persone":4,"legs":[{"data":"20/03/2027","dataIso":"2027-03-20","orario":"15:40-19:00","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Roma Fiumicino","arrivo":"Fuerteventura","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":540.52,"note":null},{"data":"23/03/2027","dataIso":"2027-03-23","orario":"18:20-23:20","compagnia":"Ryanair","codice":null,"prezzo":null,"partenza":"Fuerteventura","arrivo":"Roma Fiumicino","parcheggioCodice":null,"parcheggioPrezzo":null,"parcheggioTipo":null,"trasporto":null,"trasportoCosto":null,"totale":null,"note":"Alternativa 1"}],"hotels":[{"nome":"Elba Lucia BB","prezzo":99.86,"cancellazione":"12.03","data":null,"note":null},{"nome":"Fuerteventura Mar AI","prezzo":440.66,"cancellazione":"17.03","data":null,"note":"Alternativa 1"},{"nome":"Jandia Playa Ocean View AI","prezzo":299.12,"cancellazione":"17.03","data":null,"note":"Alternativa 2"}],"totale":540.52}];
+const STORAGE_KEY = 'viaggi_app_data_v1';
+const FIELDS = ['Confermato','Data','Orario','Persone','Codice prenotazione','Compagnia aerea','Partenza','Arrivo','Prezzo biglietto','Codice parcheggio','Prezzo parcheggio','Tipo Parcheggio','Hotel','Prezzo hotel','Cancellazione hotel entro:','Trasporti','Costo trasporti','Totale','Note'];
+
+/* ======================= NOTIFICHE PUSH ======================= */
+const APP_SECRET = 'VcRCv-ut704omuPw9Yb0DnPh_mTdHK51';
+const VAPID_PUBLIC_KEY = 'BKEQeKa2V5lbZQ7ow5YkMpmRLpSh_1t87PAA_XBOSqvLPeZXn9k0t7BGk5JT-rrMdXlPkjwcE7KPfErh8ER5P0o';
+const PUSH_FLAG_KEY = 'viaggi_push_enabled_v1';
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+async function syncTripsToServer(){
+  try{
+    await fetch('/.netlify/functions/sync-trips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-secret': APP_SECRET },
+      body: JSON.stringify(TRIPS),
+    });
+  }catch(e){
+    // sincronizzazione best-effort: se fallisce (offline, funzione non ancora deployata) non blocca l'app
+  }
+}
+
+async function enablePushNotifications(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    showToast('Le notifiche push non sono supportate su questo browser');
+    return;
+  }
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      showToast('Permesso notifiche negato');
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    const res = await fetch('/.netlify/functions/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-app-secret': APP_SECRET },
+      body: JSON.stringify(sub),
+    });
+    if(!res.ok) throw new Error('registrazione fallita');
+    localStorage.setItem(PUSH_FLAG_KEY, '1');
+    await syncTripsToServer();
+    showToast('Notifiche attivate');
+  }catch(e){
+    console.error(e);
+    showToast('Non sono riuscito ad attivare le notifiche (il backend è già stato pubblicato su Netlify?)');
+  }
+}
+function isPushEnabled(){
+  return localStorage.getItem(PUSH_FLAG_KEY) === '1';
+}
+
+let TRIPS = loadTrips();
+let currentFilter = 'prossimi';
+let editingTrip = null; // working copy durante la modifica
+
+/* ======================= STORAGE ======================= */
+// Migra i viaggi salvati con la vecchia struttura (parcheggio/trasporto
+// annidati dentro le tratte) verso i nuovi array indipendenti t.parcheggi/t.trasporti.
+function migrateTrip(t){
+  if(!Array.isArray(t.parcheggi)) t.parcheggi = [];
+  if(!Array.isArray(t.trasporti)) t.trasporti = [];
+  (t.legs||[]).forEach(leg=>{
+    const hasParcheggio = leg.parcheggioTipo!=null || leg.parcheggioPrezzo!=null || leg.parcheggioCodice!=null;
+    const hasTrasporto = leg.trasporto!=null || leg.trasportoCosto!=null;
+    if(hasParcheggio){
+      t.parcheggi.push({ tipo: leg.parcheggioTipo??null, codice: leg.parcheggioCodice??null, prezzo: leg.parcheggioPrezzo??null });
+    }
+    if(hasTrasporto){
+      t.trasporti.push({ nome: leg.trasporto??null, costo: leg.trasportoCosto??null });
+    }
+    delete leg.parcheggioTipo; delete leg.parcheggioPrezzo; delete leg.parcheggioCodice;
+    delete leg.trasporto; delete leg.trasportoCosto;
+  });
+  return t;
+}
+function migrateTrips(arr){
+  return (arr||[]).map(migrateTrip);
+}
+
+function loadTrips(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)) return migrateTrips(parsed);
+    }
+  }catch(e){}
+  return migrateTrips(JSON.parse(JSON.stringify(DEFAULT_TRIPS)));
+}
+function persist(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(TRIPS)); }catch(e){ showToast('Impossibile salvare i dati sul dispositivo'); }
+  if(isPushEnabled()) syncTripsToServer();
+}
+
+/* ======================= UTILITY ======================= */
+const fmt2 = n => (n===null||n===undefined||isNaN(n)) ? null : Number(n).toLocaleString('it-IT',{minimumFractionDigits:2, maximumFractionDigits:2});
+const eur = n => n===null||n===undefined ? null : '€ ' + fmt2(n);
+const pad2 = n => String(n).padStart(2,'0');
+
+function dayLabel(iso){
+  if(!iso) return '';
+  const d = new Date(iso+'T12:00:00');
+  if(isNaN(d)) return '';
+  const giorni = ['dom','lun','mar','mer','gio','ven','sab'];
+  return giorni[d.getDay()];
+}
+function isoToDisp(iso){
+  if(!iso) return null;
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function dispToIso(disp){
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(disp||'');
+  if(!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+function isoToExcelDate(iso){
+  if(!iso) return null;
+  const [y,m,d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+function capWords(s){
+  if(s===null||s===undefined) return null;
+  s = String(s).trim();
+  if(!s) return null;
+  return s.toLowerCase().split(' ').filter(Boolean).map(w=> w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+}
+function toNum(v){
+  if(v===null||v===undefined||v==='') return null;
+  if(typeof v === 'number') return isNaN(v)? null : v;
+  const n = parseFloat(String(v).replace(',','.'));
+  return isNaN(n) ? null : n;
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+function todayIso(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+// Stato del viaggio: 'effettuato' se la partenza è già passata, altrimenti
+// 'confermato' o 'attesa' in base alla colonna Confermato (A) del foglio.
+function tripStatus(t){
+  const today = todayIso();
+  if(t.dataIso && t.dataIso < today) return 'effettuato';
+  return t.confermato ? 'confermato' : 'attesa';
+}
+function statusLabel(status){
+  if(status==='effettuato') return 'Effettuato';
+  if(status==='confermato') return 'Confermato';
+  return 'Da confermare';
+}
+function statusBadgeHtml(status){
+  if(status==='effettuato') return `<span class="done-tag">Effettuato</span>`;
+  if(status==='confermato') return `<span class="confirmed-stamp">Confermato</span>`;
+  return `<span class="pending-tag">Da confermare</span>`;
+}
+
+/* ======================= PARSING EXCEL -> TRIPS ======================= */
+function parseDateCellJs(v){
+  if(v===null || v===undefined || v==='') return {iso:null, disp:null};
+  if(v instanceof Date){
+    const y=v.getUTCFullYear(), m=v.getUTCMonth()+1, d=v.getUTCDate();
+    return {iso:`${y}-${pad2(m)}-${pad2(d)}`, disp:`${pad2(d)}/${pad2(m)}/${y}`};
+  }
+  if(typeof v === 'number'){
+    const ms = Date.UTC(1899,11,30) + Math.round(v)*86400000;
+    const dt = new Date(ms);
+    const y=dt.getUTCFullYear(), m=dt.getUTCMonth()+1, d=dt.getUTCDate();
+    return {iso:`${y}-${pad2(m)}-${pad2(d)}`, disp:`${pad2(d)}/${pad2(m)}/${y}`};
+  }
+  const s = String(v).trim();
+  let mm = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(s);
+  if(mm){ const [,d,m,y]=mm; return {iso:`${y}-${pad2(m)}-${pad2(d)}`, disp:`${pad2(d)}/${pad2(m)}/${y}`}; }
+  mm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if(mm){ const [,d,m,y]=mm; return {iso:`${y}-${pad2(m)}-${pad2(d)}`, disp:`${pad2(d)}/${pad2(m)}/${y}`}; }
+  return {iso:null, disp:s};
+}
+function fmtShortDateJs(v){
+  if(v===null||v===undefined||v==='') return null;
+  if(v instanceof Date) return `${pad2(v.getUTCDate())}.${pad2(v.getUTCMonth()+1)}`;
+  if(typeof v === 'number'){
+    const s = v.toFixed(2);
+    const [day,month] = s.split('.');
+    return `${pad2(parseInt(day,10))}.${pad2(parseInt(month,10))}`;
+  }
+  const s = String(v).trim();
+  const m = /^(\d{1,2})\.(\d{1,2})/.exec(s);
+  if(m) return `${pad2(parseInt(m[1],10))}.${pad2(parseInt(m[2],10))}`;
+  return s;
+}
+
+function computeTripFromBlock(block, id){
+  const first = block[0];
+  const {iso, disp} = parseDateCellJs(first['Data']);
+  let persone = null;
+  for(const r of block){ if(r['Persone']!==null && r['Persone']!==undefined && r['Persone']!==''){ persone = Math.round(toNum(r['Persone'])); break; } }
+  const legs = [], hotels = [], parcheggi = [], trasporti = [];
+  let totSum = 0, hasTot = false;
+  block.forEach(r=>{
+    const hasRoute = (r['Partenza']!==null && r['Partenza']!==undefined && r['Partenza']!=='') || (r['Arrivo']!==null && r['Arrivo']!==undefined && r['Arrivo']!=='');
+    if(hasRoute){
+      const dd = parseDateCellJs(r['Data']);
+      legs.push({
+        data: dd.disp, dataIso: dd.iso,
+        orario: r['Orario'] || null,
+        compagnia: capWords(r['Compagnia aerea']),
+        codice: r['Codice prenotazione'] || null,
+        prezzo: toNum(r['Prezzo biglietto']),
+        partenza: capWords(r['Partenza']),
+        arrivo: capWords(r['Arrivo']),
+        totale: toNum(r['Totale']),
+        note: r['Note'] || null,
+      });
+    }
+    if(r['Hotel'] !== null && r['Hotel'] !== undefined && r['Hotel'] !== ''){
+      hotels.push({
+        nome: r['Hotel'],
+        prezzo: toNum(r['Prezzo hotel']),
+        cancellazione: fmtShortDateJs(r['Cancellazione hotel entro:']),
+        note: r['Note'] || null,
+      });
+    }
+    const parkCodice = (r['Codice parcheggio']===''? null : r['Codice parcheggio']) ?? null;
+    const parkPrezzo = toNum(r['Prezzo parcheggio']);
+    const parkTipo = r['Tipo Parcheggio'] || null;
+    if(parkCodice!=null || parkPrezzo!=null || parkTipo!=null){
+      parcheggi.push({ tipo: parkTipo, codice: parkCodice, prezzo: parkPrezzo });
+    }
+    const trName = r['Trasporti'] || null;
+    const trCosto = toNum(r['Costo trasporti']);
+    if(trName!=null || trCosto!=null){
+      trasporti.push({ nome: trName, costo: trCosto });
+    }
+    const t = toNum(r['Totale']);
+    if(t !== null){ totSum += t; hasTot = true; }
+  });
+  return {
+    id,
+    confermato: first['Confermato'] === 'SI',
+    data: disp, dataIso: iso, orario: first['Orario'] || null,
+    partenza: capWords(first['Partenza']), arrivo: capWords(first['Arrivo']),
+    persone, legs, hotels, parcheggi, trasporti,
+    totale: hasTot ? Math.round(totSum*100)/100 : null
+  };
+}
+
+function parseWorkbookToTrips(wb){
+  const wsName = wb.SheetNames[0];
+  const ws = wb.Sheets[wsName];
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+  const dataRows = aoa.slice(1); // salta intestazione
+  const rows = dataRows.map(arr=>{
+    const o = {};
+    FIELDS.forEach((f,i)=>{ const v = arr[i]; o[f] = (v===undefined || v==='') ? null : v; });
+    return o;
+  });
+  const blocks = [];
+  let cur = [];
+  rows.forEach(o=>{
+    const isBlank = FIELDS.every(f=> o[f]===null || o[f]===undefined || String(o[f]).trim()==='');
+    if(isBlank){ if(cur.length){ blocks.push(cur); cur=[]; } }
+    else cur.push(o);
+  });
+  if(cur.length) blocks.push(cur);
+  if(!blocks.length) return null;
+  return blocks.map((b,i)=> computeTripFromBlock(b, i+1));
+}
+
+/* ======================= EXPORT TRIPS -> EXCEL ======================= */
+function tripsToAOA(trips){
+  const aoa = [FIELDS];
+  const sorted = trips.slice().sort((a,b)=> (a.dataIso||'').localeCompare(b.dataIso||''));
+  sorted.forEach(t=>{
+    const parcheggi = t.parcheggi || [];
+    const trasporti = t.trasporti || [];
+    const rows = [];
+    t.legs.forEach((leg,i)=>{
+      const row = {}; FIELDS.forEach(f=> row[f]=null);
+      row['Data'] = leg.dataIso ? isoToExcelDate(leg.dataIso) : leg.data;
+      row['Orario'] = leg.orario;
+      row['Compagnia aerea'] = leg.compagnia;
+      row['Codice prenotazione'] = leg.codice;
+      row['Partenza'] = leg.partenza;
+      row['Arrivo'] = leg.arrivo;
+      row['Prezzo biglietto'] = leg.prezzo;
+      row['Totale'] = leg.totale;
+      row['Note'] = leg.note;
+      if(i===0){
+        row['Confermato'] = t.confermato ? 'SI' : null;
+        row['Persone'] = t.persone;
+      }
+      const h = t.hotels[i];
+      if(h){
+        row['Hotel'] = h.nome; row['Prezzo hotel'] = h.prezzo;
+        row['Cancellazione hotel entro:'] = h.cancellazione;
+        if(h.note && !row['Note']) row['Note'] = h.note;
+      }
+      const p = parcheggi[i];
+      if(p){
+        row['Codice parcheggio'] = p.codice; row['Prezzo parcheggio'] = p.prezzo; row['Tipo Parcheggio'] = p.tipo;
+      }
+      const tr = trasporti[i];
+      if(tr){
+        row['Trasporti'] = tr.nome; row['Costo trasporti'] = tr.costo;
+      }
+      rows.push(row);
+    });
+    const extraCount = Math.max(t.hotels.length, parcheggi.length, trasporti.length, t.legs.length) - t.legs.length;
+    for(let i=0; i<extraCount; i++){
+      const idx = t.legs.length + i;
+      const h = t.hotels[idx], p = parcheggi[idx], tr = trasporti[idx];
+      if(!h && !p && !tr) continue;
+      const row={}; FIELDS.forEach(f=>row[f]=null);
+      if(h){ row['Hotel']=h.nome; row['Prezzo hotel']=h.prezzo; row['Cancellazione hotel entro:']=h.cancellazione; row['Note']=h.note; }
+      if(p){ row['Codice parcheggio']=p.codice; row['Prezzo parcheggio']=p.prezzo; row['Tipo Parcheggio']=p.tipo; }
+      if(tr){ row['Trasporti']=tr.nome; row['Costo trasporti']=tr.costo; }
+      rows.push(row);
+    }
+    if(!rows.length){
+      const row={}; FIELDS.forEach(f=>row[f]=null);
+      row['Confermato']=t.confermato?'SI':null; row['Data']=t.dataIso?isoToExcelDate(t.dataIso):t.data;
+      row['Orario']=t.orario; row['Partenza']=t.partenza; row['Arrivo']=t.arrivo; row['Persone']=t.persone;
+      rows.push(row);
+    }
+    rows.forEach(r=> aoa.push(FIELDS.map(f=> r[f])));
+    aoa.push(FIELDS.map(()=>null));
+  });
+  while(aoa.length && aoa[aoa.length-1].every(v=>v===null)) aoa.pop();
+  return aoa;
+}
+function exportExcel(){
+  try{
+    const aoa = tripsToAOA(TRIPS);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = FIELDS.map(()=>({wch:16}));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Viaggi');
+    XLSX.writeFile(wb, 'Viaggi.xlsx');
+    showToast('Excel esportato');
+  }catch(e){ console.error(e); showToast('Errore durante l\'esportazione Excel'); }
+}
+function downloadJsonFile(){
+  const blob = new Blob([JSON.stringify(TRIPS, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'viaggi.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('JSON esportato');
+}
+
+/* ======================= RENDER LISTA ======================= */
+function renderStats(){
+  const today = todayIso();
+  const tot = TRIPS.length;
+  const conf = TRIPS.filter(t=> tripStatus(t)==='confermato').length;
+  const upcoming = TRIPS.filter(t=>t.dataIso && t.dataIso>=today).slice().sort((a,b)=> a.dataIso.localeCompare(b.dataIso));
+  const next = upcoming[0];
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-chip"><div class="n">${tot}</div><div class="l">Viaggi totali</div></div>
+    <div class="stat-chip"><div class="n">${conf}</div><div class="l">Confermati</div></div>
+    <div class="stat-chip"><div class="n">${next ? next.data.slice(0,5) : '—'}</div><div class="l">Prossima partenza</div></div>
+  `;
+  document.getElementById('subCount').textContent = `${tot} viaggi in programma · ${conf} confermati`;
+}
+
+function legMiniRowHtml(leg){
+  const when = [leg.data ? leg.data.slice(0,5) : null, leg.orario].filter(Boolean).join(' · ');
+  return `
+  <div class="ticket-leg-row">
+    <span class="ticket-leg-time">${when||'—'}</span>
+    <span class="ticket-leg-route">${leg.partenza||'—'} → ${leg.arrivo||'—'}</span>
+  </div>`;
+}
+
+function ticketHtml(t){
+  const nHotels = t.hotels.length;
+  const status = tripStatus(t);
+  const showTotal = (status==='confermato' || status==='effettuato') && t.totale!=null;
+  return `
+  <div class="ticket" data-id="${t.id}">
+    <div class="ticket-main">
+      <div class="route">
+        <div class="city">${t.partenza||'—'}<span>Partenza</span></div>
+        <div class="plane-track"></div>
+        <div class="city" style="text-align:right">${t.arrivo||'—'}<span>Arrivo</span></div>
+      </div>
+    </div>
+    ${t.legs.length? `<div class="ticket-legs">${t.legs.map(legMiniRowHtml).join('')}</div>` : ''}
+    ${showTotal? `
+    <div class="ticket-total">
+      <span class="label">Totale viaggio</span>
+      <span class="amt">${eur(t.totale)}</span>
+    </div>` : ''}
+    <div class="perf"></div>
+    <div class="ticket-foot">
+      <div class="badges">
+        ${nHotels? `<span class="mini-badge">${nHotels} hotel</span>`:''}
+      </div>
+      ${statusBadgeHtml(status)}
+    </div>
+  </div>`;
+}
+
+function allDestinations(){
+  const set = new Set();
+  TRIPS.forEach(t=> t.legs.forEach(l=>{
+    if(l.arrivo) set.add(l.arrivo);
+    if(l.partenza) set.add(l.partenza);
+  }));
+  return [...set].sort((a,b)=> a.localeCompare(b, 'it'));
+}
+function populateDestList(){
+  const dl = document.getElementById('destList');
+  dl.innerHTML = allDestinations().map(d=> `<option value="${d}"></option>`).join('');
+}
+function matchesDestination(t, q){
+  if(!q) return true;
+  const qq = q.trim().toLowerCase();
+  if(!qq) return true;
+  return t.legs.some(l=> (l.arrivo||'').toLowerCase().includes(qq) || (l.partenza||'').toLowerCase().includes(qq));
+}
+
+function renderList(){
+  const list = document.getElementById('list');
+  const today = todayIso();
+  let items = TRIPS.slice().sort((a,b)=> (a.dataIso||'').localeCompare(b.dataIso||''));
+
+  if(currentFilter==='prossimi') items = items.filter(t=> !t.dataIso || t.dataIso>=today);
+  else if(currentFilter==='confermati') items = items.filter(t=> tripStatus(t)==='confermato');
+  else if(currentFilter==='attesa') items = items.filter(t=> tripStatus(t)==='attesa');
+  else if(currentFilter==='effettuati') items = items.filter(t=> tripStatus(t)==='effettuato');
+  // 'tutti' non applica alcun filtro di stato/data
+
+  const destQuery = document.getElementById('destFilter').value;
+  items = items.filter(t=> matchesDestination(t, destQuery));
+
+  if(!items.length){
+    list.innerHTML = `<div class="empty-state">Nessun viaggio in questa categoria.</div>`;
+  } else {
+    list.innerHTML = items.map(ticketHtml).join('');
+    list.querySelectorAll('.ticket').forEach(el=>{
+      el.addEventListener('click', ()=> openDetail(Number(el.dataset.id)));
+    });
+  }
+  populateDestList();
+  renderStats();
+}
+
+/* ======================= DETTAGLIO (view) ======================= */
+function legCardHtml(leg){
+  const rows = [];
+  if(leg.compagnia || leg.codice) rows.push(`<div class="leg-row"><span>Compagnia</span><span class="val">${[leg.compagnia,leg.codice].filter(Boolean).join(' · ')}</span></div>`);
+  if(leg.prezzo!=null) rows.push(`<div class="leg-row"><span>Prezzo biglietto</span><span class="val">${eur(leg.prezzo)}</span></div>`);
+  return `
+  <div class="leg-card">
+    <div class="leg-top">
+      <div class="leg-route">${leg.partenza||'—'} <span class="arrow">→</span> ${leg.arrivo||'—'}</div>
+      <div class="leg-when">
+        <div class="d">${leg.data||''}${leg.dataIso? ' · '+dayLabel(leg.dataIso):''}</div>
+        ${leg.orario? `<div class="t">${leg.orario}</div>`:''}
+      </div>
+    </div>
+    ${rows.join('')}
+    ${leg.note? `<div class="leg-note">${leg.note}</div>`:''}
+  </div>`;
+}
+function parkingCardHtml(p){
+  const bits = [];
+  if(p.codice!=null) bits.push('cod. '+p.codice);
+  return `
+  <div class="hotel-card">
+    <div class="hotel-top">
+      <div class="hotel-name">${p.tipo || 'Parcheggio'}</div>
+      ${p.prezzo!=null? `<div class="hotel-price">${eur(p.prezzo)}</div>`:''}
+    </div>
+    <div class="hotel-sub">${bits.length? `<span>${bits.join(' · ')}</span>`:''}</div>
+  </div>`;
+}
+function transportCardHtml(tr){
+  return `
+  <div class="hotel-card">
+    <div class="hotel-top">
+      <div class="hotel-name">${tr.nome || 'Trasporto'}</div>
+      ${tr.costo!=null? `<div class="hotel-price">${eur(tr.costo)}</div>`:''}
+    </div>
+  </div>`;
+}
+function hotelCardHtml(h){
+  return `
+  <div class="hotel-card">
+    <div class="hotel-top">
+      <div class="hotel-name">${h.nome}</div>
+      ${h.prezzo!=null? `<div class="hotel-price">${eur(h.prezzo)}</div>`:''}
+    </div>
+    <div class="hotel-sub">${h.cancellazione? `<span>Cancellazione entro il ${h.cancellazione}</span>`:''}</div>
+    ${h.note? `<div class="hotel-alt-tag">${h.note}</div>`:''}
+  </div>`;
+}
+
+function renderDetailView(t){
+  const persone = t.persone ? `${t.persone} persone` : null;
+  const status = tripStatus(t);
+  const eyebrowText = status==='effettuato' ? 'Viaggio effettuato' : (status==='confermato' ? 'Viaggio confermato' : 'Viaggio da confermare');
+  const parcheggi = t.parcheggi || [];
+  const trasporti = t.trasporti || [];
+  const content = document.getElementById('sheetContent');
+  content.innerHTML = `
+    <div class="sheet-header">
+      <p class="eyebrow">${eyebrowText}</p>
+      <h2>${t.partenza||'—'} → ${t.arrivo||'—'}</h2>
+      <div class="status-line">
+        <span>${t.data||'—'}${t.orario? ' · '+t.orario:''}</span>
+        ${persone? `<span>· ${persone}</span>`:''}
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn primary" id="editBtn">✎ Modifica</button>
+      <button class="btn danger" id="deleteBtn">Elimina viaggio</button>
+    </div>
+    <div class="section">
+      <p class="section-title">Voli</p>
+      ${t.legs.length? t.legs.map(legCardHtml).join('') : '<p style="color:var(--slate-2); font-size:13px;">Nessuna tratta.</p>'}
+    </div>
+    ${parcheggi.length? `
+    <div class="section">
+      <p class="section-title">Parcheggio</p>
+      ${parcheggi.map(parkingCardHtml).join('')}
+    </div>` : ''}
+    ${trasporti.length? `
+    <div class="section">
+      <p class="section-title">Trasporto</p>
+      ${trasporti.map(transportCardHtml).join('')}
+    </div>` : ''}
+    ${t.hotels.length? `
+    <div class="section">
+      <p class="section-title">Hotel (${t.hotels.length})</p>
+      ${t.hotels.map(hotelCardHtml).join('')}
+    </div>` : ''}
+    ${t.totale!=null? `
+    <div class="total-row">
+      <span class="label">Totale viaggio</span>
+      <span class="amount">${eur(t.totale)}</span>
+    </div>` : ''}
+  `;
+  document.getElementById('editBtn').addEventListener('click', ()=> openEdit(t.id));
+  document.getElementById('deleteBtn').addEventListener('click', ()=> deleteTrip(t.id));
+}
+
+function openDetail(id){
+  const t = TRIPS.find(x=>x.id===id);
+  if(!t) return;
+  renderDetailView(t);
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDetail(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  editingTrip = null;
+}
+function deleteTrip(id){
+  if(!confirm('Eliminare definitivamente questo viaggio?')) return;
+  TRIPS = TRIPS.filter(t=>t.id!==id);
+  persist(); renderList(); closeDetail();
+  showToast('Viaggio eliminato');
+}
+
+/* ======================= EDIT MODE ======================= */
+function blankLeg(){
+  return {data:null,dataIso:null,orario:null,compagnia:null,codice:null,prezzo:null,partenza:null,arrivo:null,totale:null,note:null};
+}
+function blankHotel(){ return {nome:'',prezzo:null,cancellazione:null,note:null}; }
+function blankParking(){ return {tipo:'',codice:null,prezzo:null}; }
+function blankTransport(){ return {nome:'',costo:null}; }
+
+function openEdit(id){
+  const t = TRIPS.find(x=>x.id===id);
+  if(!t) return;
+  editingTrip = JSON.parse(JSON.stringify(t));
+  if(!editingTrip.parcheggi) editingTrip.parcheggi = [];
+  if(!editingTrip.trasporti) editingTrip.trasporti = [];
+  renderEditView();
+}
+function newTrip(){
+  const newId = TRIPS.length ? Math.max(...TRIPS.map(t=>t.id))+1 : 1;
+  editingTrip = { id:newId, confermato:false, data:null, dataIso:null, orario:null, partenza:null, arrivo:null, persone:null, legs:[blankLeg(), blankLeg()], hotels:[], parcheggi:[], trasporti:[], totale:null };
+  document.getElementById('sheetContent').innerHTML = '';
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderEditView();
+}
+
+function legEditCardHtml(leg, i){
+  return `
+  <div class="edit-card" data-leg="${i}">
+    <div class="edit-card-head"><span class="idx">Tratta ${i+1}</span><button class="remove-mini" data-remove-leg="${i}">Rimuovi</button></div>
+    <div class="field-grid">
+      <div class="field"><label>Data</label><input type="date" data-leg-field="dataIso" data-leg-idx="${i}" value="${leg.dataIso||''}"></div>
+      <div class="field"><label>Orario</label><input type="text" placeholder="07:00-08:10" data-leg-field="orario" data-leg-idx="${i}" value="${leg.orario||''}"></div>
+      <div class="field"><label>Partenza</label><input type="text" data-leg-field="partenza" data-leg-idx="${i}" value="${leg.partenza||''}"></div>
+      <div class="field"><label>Arrivo</label><input type="text" data-leg-field="arrivo" data-leg-idx="${i}" value="${leg.arrivo||''}"></div>
+      <div class="field"><label>Compagnia</label><input type="text" data-leg-field="compagnia" data-leg-idx="${i}" value="${leg.compagnia||''}"></div>
+      <div class="field"><label>Codice prenotazione</label><input type="text" data-leg-field="codice" data-leg-idx="${i}" value="${leg.codice||''}"></div>
+      <div class="field"><label>Prezzo biglietto (€)</label><input type="number" step="0.01" data-leg-field="prezzo" data-leg-idx="${i}" value="${leg.prezzo??''}"></div>
+      <div class="field full"><label>Note</label><input type="text" data-leg-field="note" data-leg-idx="${i}" value="${leg.note||''}"></div>
+    </div>
+  </div>`;
+}
+function hotelEditCardHtml(h, i){
+  return `
+  <div class="edit-card" data-hotel="${i}">
+    <div class="edit-card-head"><span class="idx">Hotel ${i+1}</span><button class="remove-mini" data-remove-hotel="${i}">Rimuovi</button></div>
+    <div class="field-grid">
+      <div class="field full"><label>Nome hotel</label><input type="text" data-hotel-field="nome" data-hotel-idx="${i}" value="${h.nome||''}"></div>
+      <div class="field"><label>Prezzo (€)</label><input type="number" step="0.01" data-hotel-field="prezzo" data-hotel-idx="${i}" value="${h.prezzo??''}"></div>
+      <div class="field"><label>Cancellazione entro (gg.mm)</label><input type="text" placeholder="06.11" data-hotel-field="cancellazione" data-hotel-idx="${i}" value="${h.cancellazione||''}"></div>
+      <div class="field full"><label>Note</label><input type="text" data-hotel-field="note" data-hotel-idx="${i}" value="${h.note||''}"></div>
+    </div>
+  </div>`;
+}
+function parkingEditCardHtml(p, i){
+  return `
+  <div class="edit-card" data-parking="${i}">
+    <div class="edit-card-head"><span class="idx">Parcheggio ${i+1}</span><button class="remove-mini" data-remove-parking="${i}">Rimuovi</button></div>
+    <div class="field-grid">
+      <div class="field full"><label>Tipo</label><input type="text" placeholder="es. Lunga sosta scoperto" data-parking-field="tipo" data-parking-idx="${i}" value="${p.tipo||''}"></div>
+      <div class="field"><label>Codice</label><input type="text" data-parking-field="codice" data-parking-idx="${i}" value="${p.codice??''}"></div>
+      <div class="field"><label>Prezzo (€)</label><input type="number" step="0.01" data-parking-field="prezzo" data-parking-idx="${i}" value="${p.prezzo??''}"></div>
+    </div>
+  </div>`;
+}
+function transportEditCardHtml(tr, i){
+  return `
+  <div class="edit-card" data-transport="${i}">
+    <div class="edit-card-head"><span class="idx">Trasporto ${i+1}</span><button class="remove-mini" data-remove-transport="${i}">Rimuovi</button></div>
+    <div class="field-grid">
+      <div class="field full"><label>Descrizione</label><input type="text" placeholder="es. Noleggio auto Avis" data-transport-field="nome" data-transport-idx="${i}" value="${tr.nome||''}"></div>
+      <div class="field"><label>Costo (€)</label><input type="number" step="0.01" data-transport-field="costo" data-transport-idx="${i}" value="${tr.costo??''}"></div>
+    </div>
+  </div>`;
+}
+
+function renderEditView(){
+  const t = editingTrip;
+  const content = document.getElementById('sheetContent');
+  content.innerHTML = `
+    <div class="sheet-header">
+      <p class="eyebrow">Modifica viaggio</p>
+      <h2>${t.partenza||'Nuovo'} ${t.arrivo? '→ '+t.arrivo : ''}</h2>
+    </div>
+    <div class="section">
+      <div class="checkbox-field">
+        <input type="checkbox" id="confermatoChk" ${t.confermato? 'checked':''}>
+        <label for="confermatoChk">Viaggio confermato</label>
+      </div>
+      <div class="field" style="max-width:160px;">
+        <label>Persone</label>
+        <input type="number" id="personeInput" min="1" value="${t.persone??''}">
+      </div>
+    </div>
+    <div class="section">
+      <p class="section-title">Voli</p>
+      <div id="legsWrap">${t.legs.map(legEditCardHtml).join('')}</div>
+      <button class="add-card-btn" id="addLegBtn">+ Aggiungi tratta</button>
+    </div>
+    <div class="section">
+      <p class="section-title">Parcheggio</p>
+      <div id="parkingWrap">${(t.parcheggi||[]).map(parkingEditCardHtml).join('')}</div>
+      <button class="add-card-btn" id="addParkingBtn">+ Aggiungi parcheggio</button>
+    </div>
+    <div class="section">
+      <p class="section-title">Trasporto</p>
+      <div id="transportWrap">${(t.trasporti||[]).map(transportEditCardHtml).join('')}</div>
+      <button class="add-card-btn" id="addTransportBtn">+ Aggiungi trasporto</button>
+    </div>
+    <div class="section">
+      <p class="section-title">Hotel</p>
+      <div id="hotelsWrap">${t.hotels.map(hotelEditCardHtml).join('')}</div>
+      <button class="add-card-btn" id="addHotelBtn">+ Aggiungi hotel</button>
+    </div>
+    <div class="section">
+      <p class="section-title">Totale</p>
+      <div class="edit-card">
+        <div class="field" style="max-width:220px;">
+          <label>Totale viaggio (€)</label>
+          <input type="number" step="0.01" id="totaleInput" value="${t.totale??''}">
+        </div>
+        <button class="btn ghost" type="button" id="calcTotaleBtn" style="margin-top:8px;">🧮 Calcola automaticamente</button>
+      </div>
+    </div>
+    <div class="action-row" style="padding-bottom:24px;">
+      <button class="btn primary" id="saveEditBtn">Salva modifiche</button>
+      <button class="btn ghost" id="cancelEditBtn">Annulla</button>
+    </div>
+  `;
+  bindEditEvents();
+}
+
+// (prezzi biglietti sommati * 2) + (parcheggio/persone)*2 + (trasporto/persone)*2
+// + costo hotel per gli hotel senza note o con nota "Alternativa 1"
+function computeAutoTotale(t){
+  const persone = (t.persone && t.persone > 0) ? t.persone : 1;
+  const sumBiglietti = (t.legs||[]).reduce((s,l)=> s + (l.prezzo!=null ? l.prezzo : 0), 0);
+  const sumParcheggio = (t.parcheggi||[]).reduce((s,p)=> s + (p.prezzo!=null ? p.prezzo : 0), 0);
+  const sumTrasporto = (t.trasporti||[]).reduce((s,tr)=> s + (tr.costo!=null ? tr.costo : 0), 0);
+  const sumHotel = (t.hotels||[]).reduce((s,h)=>{
+    const note = (h.note||'').trim().toLowerCase();
+    const include = note==='' || note==='alternativa 1';
+    return s + (include && h.prezzo!=null ? h.prezzo : 0);
+  }, 0);
+  const totale = (sumBiglietti*2) + (sumParcheggio/persone)*2 + (sumTrasporto/persone)*2 + sumHotel;
+  return Math.round(totale*100)/100;
+}
+
+function bindEditEvents(){
+  document.getElementById('confermatoChk').addEventListener('change', e=> editingTrip.confermato = e.target.checked);
+  document.getElementById('personeInput').addEventListener('input', e=> editingTrip.persone = e.target.value? parseInt(e.target.value,10) : null);
+  document.getElementById('totaleInput').addEventListener('input', e=> editingTrip.totale = e.target.value==='' ? null : parseFloat(e.target.value));
+  document.getElementById('calcTotaleBtn').addEventListener('click', ()=>{
+    const val = computeAutoTotale(editingTrip);
+    editingTrip.totale = val;
+    document.getElementById('totaleInput').value = val;
+    showToast(`Totale calcolato: ${eur(val)}`);
+  });
+
+  document.querySelectorAll('[data-leg-field]').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const idx = Number(e.target.dataset.legIdx);
+      const field = e.target.dataset.legField;
+      let val = e.target.value;
+      if(field==='dataIso'){
+        editingTrip.legs[idx].dataIso = val || null;
+        editingTrip.legs[idx].data = val ? isoToDisp(val) : null;
+      } else if(['prezzo','totale'].includes(field)){
+        editingTrip.legs[idx][field] = val==='' ? null : parseFloat(val);
+      } else {
+        editingTrip.legs[idx][field] = val || null;
+      }
+    });
+  });
+  document.querySelectorAll('[data-hotel-field]').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const idx = Number(e.target.dataset.hotelIdx);
+      const field = e.target.dataset.hotelField;
+      let val = e.target.value;
+      if(field==='prezzo'){
+        editingTrip.hotels[idx].prezzo = val==='' ? null : parseFloat(val);
+      } else {
+        editingTrip.hotels[idx][field] = val || null;
+      }
+    });
+  });
+  document.querySelectorAll('[data-parking-field]').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const idx = Number(e.target.dataset.parkingIdx);
+      const field = e.target.dataset.parkingField;
+      let val = e.target.value;
+      if(field==='prezzo'){
+        editingTrip.parcheggi[idx].prezzo = val==='' ? null : parseFloat(val);
+      } else if(field==='codice'){
+        editingTrip.parcheggi[idx].codice = val || null;
+      } else {
+        editingTrip.parcheggi[idx][field] = val || null;
+      }
+    });
+  });
+  document.querySelectorAll('[data-transport-field]').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const idx = Number(e.target.dataset.transportIdx);
+      const field = e.target.dataset.transportField;
+      let val = e.target.value;
+      if(field==='costo'){
+        editingTrip.trasporti[idx].costo = val==='' ? null : parseFloat(val);
+      } else {
+        editingTrip.trasporti[idx][field] = val || null;
+      }
+    });
+  });
+  document.querySelectorAll('[data-remove-leg]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const idx = Number(e.target.dataset.removeLeg);
+      editingTrip.legs.splice(idx,1);
+      renderEditView();
+    });
+  });
+  document.querySelectorAll('[data-remove-hotel]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const idx = Number(e.target.dataset.removeHotel);
+      editingTrip.hotels.splice(idx,1);
+      renderEditView();
+    });
+  });
+  document.querySelectorAll('[data-remove-parking]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const idx = Number(e.target.dataset.removeParking);
+      editingTrip.parcheggi.splice(idx,1);
+      renderEditView();
+    });
+  });
+  document.querySelectorAll('[data-remove-transport]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const idx = Number(e.target.dataset.removeTransport);
+      editingTrip.trasporti.splice(idx,1);
+      renderEditView();
+    });
+  });
+  document.getElementById('addLegBtn').addEventListener('click', ()=>{
+    editingTrip.legs.push(blankLeg());
+    renderEditView();
+  });
+  document.getElementById('addHotelBtn').addEventListener('click', ()=>{
+    editingTrip.hotels.push(blankHotel());
+    renderEditView();
+  });
+  document.getElementById('addParkingBtn').addEventListener('click', ()=>{
+    editingTrip.parcheggi.push(blankParking());
+    renderEditView();
+  });
+  document.getElementById('addTransportBtn').addEventListener('click', ()=>{
+    editingTrip.trasporti.push(blankTransport());
+    renderEditView();
+  });
+  document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+  document.getElementById('cancelEditBtn').addEventListener('click', ()=>{
+    const existed = TRIPS.some(t=>t.id===editingTrip.id);
+    if(existed) openDetail(editingTrip.id); else closeDetail();
+  });
+}
+
+function saveEdit(){
+  const t = editingTrip;
+  if(!t.legs.length && !t.hotels.length){
+    showToast('Aggiungi almeno una tratta o un hotel');
+    return;
+  }
+  const first = t.legs[0];
+  if(first){
+    t.data = first.data; t.dataIso = first.dataIso; t.orario = first.orario;
+    t.partenza = first.partenza; t.arrivo = first.arrivo;
+  }
+  // il totale viene ora inserito manualmente in un unico campo (editingTrip.totale,
+  // già aggiornato dall'input); lo riportiamo sulla prima tratta per mantenere
+  // coerente l'esportazione verso Excel, azzerando eventuali totali residui sulle altre.
+  t.legs.forEach((l,i)=>{ l.totale = (i===0) ? t.totale : null; });
+
+  const idx = TRIPS.findIndex(x=>x.id===t.id);
+  if(idx>=0) TRIPS[idx] = t; else TRIPS.push(t);
+  persist();
+  renderList();
+  showToast('Viaggio salvato');
+  openDetail(t.id);
+}
+
+/* ======================= MENU ======================= */
+function openMenu(){
+  document.getElementById('menuOverlay').classList.add('open');
+  document.getElementById('menuSheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMenu(){
+  document.getElementById('menuOverlay').classList.remove('open');
+  document.getElementById('menuSheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('menuBtn').addEventListener('click', openMenu);
+document.getElementById('menuOverlay').addEventListener('click', closeMenu);
+document.getElementById('menuClose').addEventListener('click', closeMenu);
+
+document.getElementById('mImportExcel').addEventListener('click', ()=>{
+  closeMenu();
+  document.getElementById('fileInputExcel').click();
+});
+document.getElementById('fileInputExcel').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  if(!confirm('Importare da Excel sostituirà tutti i viaggi attualmente nell\'app. Continuare?')){ e.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = new Uint8Array(ev.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const trips = parseWorkbookToTrips(wb);
+      if(!trips || !trips.length){ showToast('Nessun viaggio trovato nel file'); return; }
+      TRIPS = trips;
+      persist(); renderList();
+      showToast(`${trips.length} viaggi importati da Excel`);
+    }catch(err){ console.error(err); showToast('Errore nella lettura del file Excel'); }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+});
+
+document.getElementById('mExportExcel').addEventListener('click', ()=>{ closeMenu(); exportExcel(); });
+document.getElementById('mExportJsonFile').addEventListener('click', ()=>{ closeMenu(); downloadJsonFile(); });
+
+document.getElementById('mShowJson').addEventListener('click', ()=>{
+  closeMenu();
+  document.getElementById('jsonText').value = JSON.stringify(TRIPS, null, 2);
+  document.getElementById('jsonModalOverlay').classList.add('open');
+});
+document.getElementById('jsonModalClose').addEventListener('click', ()=> document.getElementById('jsonModalOverlay').classList.remove('open'));
+document.getElementById('jsonModalOk').addEventListener('click', ()=> document.getElementById('jsonModalOverlay').classList.remove('open'));
+document.getElementById('jsonCopyBtn').addEventListener('click', async ()=>{
+  const ta = document.getElementById('jsonText');
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    showToast('JSON copiato negli appunti');
+  }catch(e){
+    ta.select();
+    document.execCommand('copy');
+    showToast('JSON copiato negli appunti');
+  }
+});
+
+document.getElementById('mImportJson').addEventListener('click', ()=>{
+  closeMenu();
+  document.getElementById('fileInputJson').click();
+});
+document.getElementById('fileInputJson').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  if(!confirm('Importare un backup JSON sostituirà tutti i viaggi attualmente nell\'app. Continuare?')){ e.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const parsed = JSON.parse(ev.target.result);
+      if(!Array.isArray(parsed) || !parsed.every(t=> t && Array.isArray(t.legs))) throw new Error('formato non valido');
+      TRIPS = migrateTrips(parsed);
+      persist(); renderList();
+      showToast(`${parsed.length} viaggi importati da JSON`);
+    }catch(err){ console.error(err); showToast('File JSON non valido'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+document.getElementById('mReset').addEventListener('click', ()=>{
+  closeMenu();
+  if(!confirm('Ripristinare i dati di esempio originali? Le modifiche fatte nell\'app andranno perse.')) return;
+  TRIPS = migrateTrips(JSON.parse(JSON.stringify(DEFAULT_TRIPS)));
+  persist(); renderList();
+  showToast('Dati ripristinati');
+});
+
+document.getElementById('newTripBtn').addEventListener('click', newTrip);
+document.getElementById('overlay').addEventListener('click', closeDetail);
+document.getElementById('sheetClose').addEventListener('click', closeDetail);
+document.getElementById('filters').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.filter-btn');
+  if(!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.f;
+  renderList();
+});
+
+const destFilterInput = document.getElementById('destFilter');
+const destClearBtn = document.getElementById('destClear');
+destFilterInput.addEventListener('input', ()=>{
+  destClearBtn.classList.toggle('show', !!destFilterInput.value);
+  renderList();
+});
+destClearBtn.addEventListener('click', ()=>{
+  destFilterInput.value = '';
+  destClearBtn.classList.remove('show');
+  renderList();
+  destFilterInput.focus();
+});
+
+document.getElementById('mEnablePush').addEventListener('click', ()=>{
+  closeMenu();
+  enablePushNotifications();
+});
+
+renderList();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Registrazione service worker non riuscita:', err));
+  });
+}
+if(isPushEnabled()) syncTripsToServer();
+</script>
+</body>
+</html>
