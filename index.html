@@ -719,23 +719,47 @@ async function enablePushNotifications(){
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if(!sub){
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
+      try{
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }catch(subErr){
+        console.error(subErr);
+        showToast('Iscrizione push rifiutata dal browser: ' + (subErr && subErr.message ? subErr.message : subErr));
+        return;
+      }
     }
-    const res = await fetch('/.netlify/functions/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-app-secret': APP_SECRET },
-      body: JSON.stringify(sub),
-    });
-    if(!res.ok) throw new Error('registrazione fallita');
+    let res;
+    try{
+      res = await fetch('/.netlify/functions/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-secret': APP_SECRET },
+        body: JSON.stringify(sub),
+      });
+    }catch(netErr){
+      console.error(netErr);
+      showToast('Impossibile contattare il backend (errore di rete)');
+      return;
+    }
+    if(!res.ok){
+      const bodyText = await res.text().catch(()=> '');
+      console.error('subscribe fallita', res.status, bodyText);
+      if(res.status === 401){
+        showToast('Backend raggiunto ma APP_SECRET non corrisponde (controlla la variabile su Netlify)');
+      } else if(res.status === 404){
+        showToast('Funzione subscribe non trovata (404) — verifica il deploy');
+      } else {
+        showToast(`Errore dal backend: ${res.status} ${bodyText}`.slice(0,120));
+      }
+      return;
+    }
     localStorage.setItem(PUSH_FLAG_KEY, '1');
     await syncTripsToServer();
     showToast('Notifiche attivate');
   }catch(e){
     console.error(e);
-    showToast('Non sono riuscito ad attivare le notifiche (il backend è già stato pubblicato su Netlify?)');
+    showToast('Errore imprevisto: ' + (e && e.message ? e.message : e));
   }
 }
 function isPushEnabled(){
@@ -829,7 +853,8 @@ function showToast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(showToast._tm);
-  showToast._tm = setTimeout(()=> t.classList.remove('show'), 2600);
+  const duration = msg && msg.length > 60 ? 5500 : 2600;
+  showToast._tm = setTimeout(()=> t.classList.remove('show'), duration);
 }
 
 function todayIso(){
