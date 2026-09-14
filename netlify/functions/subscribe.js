@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs');
+const { viaggiStore } = require('./_blobs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -18,7 +18,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: 'Invalid subscription' };
   }
 
-  const store = getStore('viaggi-data');
+  const store = viaggiStore();
   let subs = [];
   try {
     const existing = await store.get('subscriptions', { type: 'json' });

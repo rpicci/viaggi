@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs');
+const { viaggiStore } = require('./_blobs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -18,7 +18,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: 'Expected an array of trips' };
   }
 
-  const store = getStore('viaggi-data');
+  const store = viaggiStore();
   await store.setJSON('trips', payload);
 
   return { statusCode: 200, body: JSON.stringify({ ok: true, viaggi: payload.length }) };

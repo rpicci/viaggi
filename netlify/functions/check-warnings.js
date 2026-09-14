@@ -1,5 +1,5 @@
 const webpush = require('web-push');
-const { getStore } = require('@netlify/blobs');
+const { viaggiStore } = require('./_blobs');
 
 function inferCancellazioneIso(shortDate, tripDataIso) {
   // shortDate arriva nel formato "gg.mm" (senza anno); lo deduciamo dal
@@ -41,7 +41,7 @@ exports.handler = async () => {
     return { statusCode: 200, body: 'Non sono le 10 in Italia, nessuna azione.' };
   }
 
-  const store = getStore('viaggi-data');
+  const store = viaggiStore();
   const today = romeTodayIso();
 
   let lastRun = null;
