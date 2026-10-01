@@ -302,6 +302,7 @@ header.top .sub{
   font-family:'Archivo',sans-serif;
   font-weight:800;
   font-size:15px;
+  text-align:right;
   color:var(--gold-deep);
 }
 .perf{
@@ -512,6 +513,16 @@ header.top .sub{
 .hotel-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
 .hotel-name{font-family:'Archivo',sans-serif; font-weight:700; font-size:14.5px; color:var(--paper);}
 .hotel-price{font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--gold); font-size:14px; white-space:nowrap;}
+.rivalutato{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:500;
+  color:var(--text-mute);
+  white-space:nowrap;
+  margin-top:1px;
+}
+.rivalutato.on-dark{ color:var(--slate-2); }
 .hotel-sub{font-size:11.5px; color:var(--slate-2); margin-top:6px; display:flex; gap:10px; flex-wrap:wrap;}
 .hotel-alt-tag{display:inline-block; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase; background:rgba(200,155,60,0.15); color:var(--gold); padding:3px 8px; border-radius:6px;}
 
@@ -766,6 +777,32 @@ function isPushEnabled(){
   return localStorage.getItem(PUSH_FLAG_KEY) === '1';
 }
 
+async function disablePushNotifications(){
+  try{
+    if('serviceWorker' in navigator){
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if(sub){
+        try{
+          await fetch('/.netlify/functions/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-app-secret': APP_SECRET },
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          });
+        }catch(e){
+          // best-effort: anche se il backend non risponde, procediamo comunque
+          // a disiscrivere il browser e a spegnere il flag locale
+        }
+        await sub.unsubscribe();
+      }
+    }
+  }catch(e){
+    console.error(e);
+  }
+  localStorage.removeItem(PUSH_FLAG_KEY);
+  showToast('Notifiche disattivate');
+}
+
 let TRIPS = loadTrips();
 let currentFilter = 'prossimi';
 let editingTrip = null; // working copy durante la modifica
@@ -813,6 +850,42 @@ function persist(){
 const fmt2 = n => (n===null||n===undefined||isNaN(n)) ? null : Number(n).toLocaleString('it-IT',{minimumFractionDigits:2, maximumFractionDigits:2});
 const eur = n => n===null||n===undefined ? null : '€ ' + fmt2(n);
 const pad2 = n => String(n).padStart(2,'0');
+
+/* ======================= ATTUALIZZAZIONE (ISTAT FOI) ======================= */
+// Coefficienti calcolati concatenando le variazioni % annue dell'indice ISTAT
+// FOI (senza tabacchi) - fonte: rivaluta.it - fino al 2026 (anno di riferimento
+// "oggi"). Vanno aggiornati una volta l'anno aggiungendo la variazione più
+// recente e ricalcolando ANNO_RIFERIMENTO. Anni successivi al riferimento
+// (prenotazioni future) non vengono attualizzati (coefficiente 1).
+const ANNO_RIFERIMENTO = 2026;
+const COEFF_RIVALUTAZIONE = {
+  2014: 1.2263, 2015: 1.2288, 2016: 1.2300, 2017: 1.2155, 2018: 1.2022,
+  2019: 1.1974, 2020: 1.1998, 2021: 1.1786, 2022: 1.0913, 2023: 1.0354,
+  2024: 1.0262, 2025: 1.0120, 2026: 1.0000,
+};
+function coeffPerAnno(anno){
+  if(anno==null) return 1;
+  if(anno >= ANNO_RIFERIMENTO) return 1;
+  if(anno <= 2014) return COEFF_RIVALUTAZIONE[2014];
+  return COEFF_RIVALUTAZIONE[anno] ?? 1;
+}
+function valoreAttualizzato(prezzo, anno){
+  if(prezzo==null || anno==null) return null;
+  const c = coeffPerAnno(anno);
+  if(c===1) return null; // stesso anno di riferimento: nessuna differenza da mostrare
+  return Math.round(prezzo*c*100)/100;
+}
+// Piccola annotazione "≈ € X oggi" da affiancare a un prezzo, se l'anno è diverso da quello corrente.
+function attualizzatoHtml(prezzo, anno, dark){
+  const val = valoreAttualizzato(prezzo, anno);
+  if(val==null) return '';
+  return `<span class="rivalutato${dark? ' on-dark':''}">≈ ${eur(val)} oggi</span>`;
+}
+function annoDaIso(iso){
+  if(!iso) return null;
+  const m = /^(\d{4})-/.exec(iso);
+  return m ? parseInt(m[1],10) : null;
+}
 
 function dayLabel(iso){
   if(!iso) return '';
@@ -1101,6 +1174,7 @@ function ticketHtml(t){
   const nHotels = t.hotels.length;
   const status = tripStatus(t);
   const showTotal = (status==='confermato' || status==='effettuato') && t.totale!=null;
+  const annoViaggio = annoDaIso(t.dataIso);
   return `
   <div class="ticket" data-id="${t.id}">
     <div class="ticket-main">
@@ -1114,7 +1188,7 @@ function ticketHtml(t){
     ${showTotal? `
     <div class="ticket-total">
       <span class="label">Totale viaggio</span>
-      <span class="amt">${eur(t.totale)}</span>
+      <span class="amt">${eur(t.totale)}${attualizzatoHtml(t.totale, annoViaggio)}</span>
     </div>` : ''}
     <div class="perf"></div>
     <div class="ticket-foot">
@@ -1175,7 +1249,7 @@ function renderList(){
 function legCardHtml(leg){
   const rows = [];
   if(leg.compagnia || leg.codice) rows.push(`<div class="leg-row"><span>Compagnia</span><span class="val">${[leg.compagnia,leg.codice].filter(Boolean).join(' · ')}</span></div>`);
-  if(leg.prezzo!=null) rows.push(`<div class="leg-row"><span>Prezzo biglietto</span><span class="val">${eur(leg.prezzo)}</span></div>`);
+  if(leg.prezzo!=null) rows.push(`<div class="leg-row"><span>Prezzo biglietto</span><span class="val">${eur(leg.prezzo)}${attualizzatoHtml(leg.prezzo, annoDaIso(leg.dataIso))}</span></div>`);
   return `
   <div class="leg-card">
     <div class="leg-top">
@@ -1189,33 +1263,33 @@ function legCardHtml(leg){
     ${leg.note? `<div class="leg-note">${leg.note}</div>`:''}
   </div>`;
 }
-function parkingCardHtml(p){
+function parkingCardHtml(p, anno){
   const bits = [];
   if(p.codice!=null) bits.push('cod. '+p.codice);
   return `
   <div class="hotel-card">
     <div class="hotel-top">
       <div class="hotel-name">${p.tipo || 'Parcheggio'}</div>
-      ${p.prezzo!=null? `<div class="hotel-price">${eur(p.prezzo)}</div>`:''}
+      ${p.prezzo!=null? `<div class="hotel-price">${eur(p.prezzo)}${attualizzatoHtml(p.prezzo, anno)}</div>`:''}
     </div>
     <div class="hotel-sub">${bits.length? `<span>${bits.join(' · ')}</span>`:''}</div>
   </div>`;
 }
-function transportCardHtml(tr){
+function transportCardHtml(tr, anno){
   return `
   <div class="hotel-card">
     <div class="hotel-top">
       <div class="hotel-name">${tr.nome || 'Trasporto'}</div>
-      ${tr.costo!=null? `<div class="hotel-price">${eur(tr.costo)}</div>`:''}
+      ${tr.costo!=null? `<div class="hotel-price">${eur(tr.costo)}${attualizzatoHtml(tr.costo, anno)}</div>`:''}
     </div>
   </div>`;
 }
-function hotelCardHtml(h){
+function hotelCardHtml(h, anno){
   return `
   <div class="hotel-card">
     <div class="hotel-top">
       <div class="hotel-name">${h.nome}</div>
-      ${h.prezzo!=null? `<div class="hotel-price">${eur(h.prezzo)}</div>`:''}
+      ${h.prezzo!=null? `<div class="hotel-price">${eur(h.prezzo)}${attualizzatoHtml(h.prezzo, anno)}</div>`:''}
     </div>
     <div class="hotel-sub">${h.cancellazione? `<span>Cancellazione entro il ${h.cancellazione}</span>`:''}</div>
     ${h.note? `<div class="hotel-alt-tag">${h.note}</div>`:''}
@@ -1228,6 +1302,7 @@ function renderDetailView(t){
   const eyebrowText = status==='effettuato' ? 'Viaggio effettuato' : (status==='confermato' ? 'Viaggio confermato' : 'Viaggio da confermare');
   const parcheggi = t.parcheggi || [];
   const trasporti = t.trasporti || [];
+  const annoViaggio = annoDaIso(t.dataIso);
   const content = document.getElementById('sheetContent');
   content.innerHTML = `
     <div class="sheet-header">
@@ -1249,21 +1324,24 @@ function renderDetailView(t){
     ${parcheggi.length? `
     <div class="section">
       <p class="section-title">Parcheggio</p>
-      ${parcheggi.map(parkingCardHtml).join('')}
+      ${parcheggi.map(p=>parkingCardHtml(p, annoViaggio)).join('')}
     </div>` : ''}
     ${trasporti.length? `
     <div class="section">
       <p class="section-title">Trasporto</p>
-      ${trasporti.map(transportCardHtml).join('')}
+      ${trasporti.map(tr=>transportCardHtml(tr, annoViaggio)).join('')}
     </div>` : ''}
     ${t.hotels.length? `
     <div class="section">
       <p class="section-title">Hotel (${t.hotels.length})</p>
-      ${t.hotels.map(hotelCardHtml).join('')}
+      ${t.hotels.map(h=>hotelCardHtml(h, annoViaggio)).join('')}
     </div>` : ''}
     ${t.totale!=null? `
     <div class="total-row">
-      <span class="label">Totale viaggio</span>
+      <div>
+        <span class="label">Totale viaggio</span>
+        ${attualizzatoHtml(t.totale, annoViaggio, true)}
+      </div>
       <span class="amount">${eur(t.totale)}</span>
     </div>` : ''}
   `;
@@ -1580,7 +1658,21 @@ function saveEdit(){
 }
 
 /* ======================= MENU ======================= */
+function refreshPushMenuItem(){
+  const btn = document.getElementById('mEnablePush');
+  if(!btn) return;
+  if(isPushEnabled()){
+    btn.querySelector('.ic').textContent = '🔕';
+    btn.querySelector('b').textContent = 'Disattiva notifiche cancellazione hotel';
+    btn.querySelector('.desc').textContent = 'Attualmente attive — tocca per disattivarle su questo dispositivo';
+  } else {
+    btn.querySelector('.ic').textContent = '🔔';
+    btn.querySelector('b').textContent = 'Notifiche cancellazione hotel';
+    btn.querySelector('.desc').textContent = 'Avviso alle 10:00 quando mancano 1-3 giorni alla scadenza';
+  }
+}
 function openMenu(){
+  refreshPushMenuItem();
   document.getElementById('menuOverlay').classList.add('open');
   document.getElementById('menuSheet').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1698,7 +1790,8 @@ destClearBtn.addEventListener('click', ()=>{
 
 document.getElementById('mEnablePush').addEventListener('click', ()=>{
   closeMenu();
-  enablePushNotifications();
+  if(isPushEnabled()) disablePushNotifications();
+  else enablePushNotifications();
 });
 
 renderList();
