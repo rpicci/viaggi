@@ -177,6 +177,33 @@ header.top .sub{
 }
 .dest-filter #destClear.show{display:flex;}
 
+.sort-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:12px 20px 4px;
+}
+.sort-row label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--slate-2);
+  white-space:nowrap;
+}
+.sort-row select{
+  flex:1;
+  padding:9px 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.04);
+  color:var(--paper);
+  font-size:13px;
+  font-family:'Inter',sans-serif;
+}
+.sort-row select:focus{outline:none; border-color:var(--gold);}
+.sort-row select option{ background:var(--ink); color:var(--paper); }
+
 .list{
   padding:14px 16px 10px;
   display:flex;
@@ -553,6 +580,34 @@ header.top .sub{
 .checkbox-field input{width:18px; height:18px;}
 .checkbox-field label{font-size:13px; color:var(--paper); font-family:'Inter',sans-serif;}
 
+/* Riepilogo per destinazione */
+.summary-checks{display:flex; flex-direction:column; gap:10px;}
+.summary-checks label{display:flex; align-items:center; gap:9px; font-size:13.5px; color:var(--paper); font-family:'Inter',sans-serif;}
+.summary-checks input{width:18px; height:18px; flex-shrink:0;}
+.dest-checklist{
+  max-height:220px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:4px 2px;
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;
+  padding:10px 12px;
+}
+.dest-checklist label{display:flex; align-items:center; gap:9px; font-size:13px; color:var(--paper); font-family:'Inter',sans-serif;}
+.dest-checklist input{width:16px; height:16px; flex-shrink:0;}
+.pivot-total{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--slate-2); margin-bottom:12px;}
+.pivot-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:11px 14px; margin-bottom:8px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+}
+.pivot-dest{font-family:'Archivo',sans-serif; font-weight:600; font-size:14px; color:var(--paper);}
+.pivot-count{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:15px; color:var(--gold);}
+
 /* Menu sheet */
 .menu-item{
   display:flex; align-items:center; gap:12px;
@@ -603,7 +658,7 @@ header.top .sub{
 
 @media (min-width:600px){
   .list{max-width:640px; margin:0 auto;}
-  header.top, .stats-row, .filters, .dest-filter{max-width:640px; margin-left:auto; margin-right:auto;}
+  header.top, .stats-row, .filters, .dest-filter, .sort-row{max-width:640px; margin-left:auto; margin-right:auto;}
   .sheet{max-width:640px; left:50%; transform:translate(-50%,100%);}
   .sheet.open{transform:translate(-50%,0);}
 }
@@ -617,7 +672,10 @@ header.top .sub{
     <h1>Viaggi</h1>
     <p class="sub" id="subCount">— viaggi in programma</p>
   </div>
-  <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+  <div style="display:flex; gap:8px;">
+    <button class="menu-btn" id="summaryBtn" aria-label="Riepilogo per destinazione">📊</button>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+  </div>
 </header>
 
 <div class="stats-row" id="statsRow"></div>
@@ -634,6 +692,16 @@ header.top .sub{
   <input type="text" id="destFilter" list="destList" placeholder="Filtra per destinazione…" autocomplete="off">
   <datalist id="destList"></datalist>
   <button id="destClear" aria-label="Cancella filtro destinazione">✕</button>
+</div>
+
+<div class="sort-row">
+  <label for="sortSelect">Ordina per</label>
+  <select id="sortSelect">
+    <option value="data">Data (crescente)</option>
+    <option value="totale">Totale viaggio (dal più caro)</option>
+    <option value="hotel">Costo hotel (dal più caro)</option>
+    <option value="voli">Costo voli (dal più caro)</option>
+  </select>
 </div>
 
 <div class="list" id="list"></div>
@@ -664,6 +732,37 @@ header.top .sub{
     <button class="menu-item" id="mImportJson"><span class="ic">📋</span><span><b>Importa JSON</b><span class="desc">Ripristina da un backup .json</span></span></button>
     <button class="menu-item" id="mEnablePush"><span class="ic">🔔</span><span><b>Notifiche cancellazione hotel</b><span class="desc">Avviso alle 10:00 quando mancano 1-3 giorni alla scadenza</span></span></button>
     <button class="menu-item danger" id="mReset"><span class="ic">↺</span><span><b>Ripristina dati di esempio</b><span class="desc">Torna ai dati originali del foglio</span></span></button>
+  </div>
+</div>
+
+<!-- Riepilogo per destinazione -->
+<div class="overlay" id="summaryOverlay"></div>
+<div class="sheet" id="summarySheet">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="summaryClose">✕</button>
+  <div class="sheet-header" style="padding-top:14px;">
+    <p class="eyebrow">Riepilogo</p>
+    <h2 style="font-size:20px;">Viaggi per destinazione</h2>
+  </div>
+  <div class="section">
+    <p class="section-title">Tipo viaggio</p>
+    <div class="summary-checks">
+      <label><input type="checkbox" class="summary-stato" value="confermato" checked> Confermato</label>
+      <label><input type="checkbox" class="summary-stato" value="attesa" checked> Da confermare (programmato)</label>
+      <label><input type="checkbox" class="summary-stato" value="effettuato" checked> Effettuato</label>
+    </div>
+  </div>
+  <div class="section">
+    <p class="section-title">Destinazione</p>
+    <div class="action-row" style="padding:0 0 10px;">
+      <button class="btn ghost" id="summarySelAll" type="button">Seleziona tutte</button>
+      <button class="btn ghost" id="summarySelNone" type="button">Deseleziona tutte</button>
+    </div>
+    <div id="summaryDestList" class="dest-checklist"></div>
+  </div>
+  <div class="section" style="padding-bottom:28px;">
+    <p class="section-title">Risultato</p>
+    <div id="summaryResult"></div>
   </div>
 </div>
 
@@ -805,6 +904,7 @@ async function disablePushNotifications(){
 
 let TRIPS = loadTrips();
 let currentFilter = 'prossimi';
+let currentSort = 'data';
 let editingTrip = null; // working copy durante la modifica
 
 /* ======================= STORAGE ======================= */
@@ -1219,10 +1319,35 @@ function matchesDestination(t, q){
   return t.legs.some(l=> (l.arrivo||'').toLowerCase().includes(qq) || (l.partenza||'').toLowerCase().includes(qq));
 }
 
+function hotelCostoTotale(t){
+  const vals = (t.hotels||[]).map(h=>h.prezzo).filter(v=>v!=null);
+  return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)*100)/100 : null;
+}
+function voliCostoTotale(t){
+  const vals = (t.legs||[]).map(l=>l.prezzo).filter(v=>v!=null);
+  return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)*100)/100 : null;
+}
+function sortTrips(items, sortKey){
+  const sorted = items.slice();
+  if(sortKey==='data'){
+    sorted.sort((a,b)=> (a.dataIso||'9999').localeCompare(b.dataIso||'9999'));
+  } else {
+    const getVal = sortKey==='totale' ? (t=>t.totale) : sortKey==='hotel' ? hotelCostoTotale : voliCostoTotale;
+    sorted.sort((a,b)=>{
+      const va = getVal(a), vb = getVal(b);
+      if(va==null && vb==null) return 0;
+      if(va==null) return 1;  // i viaggi senza quel dato vanno in fondo
+      if(vb==null) return -1;
+      return vb - va; // dal più caro al più economico
+    });
+  }
+  return sorted;
+}
+
 function renderList(){
   const list = document.getElementById('list');
   const today = todayIso();
-  let items = TRIPS.slice().sort((a,b)=> (a.dataIso||'').localeCompare(b.dataIso||''));
+  let items = TRIPS.slice();
 
   if(currentFilter==='prossimi') items = items.filter(t=> !t.dataIso || t.dataIso>=today);
   else if(currentFilter==='confermati') items = items.filter(t=> tripStatus(t)==='confermato');
@@ -1232,6 +1357,8 @@ function renderList(){
 
   const destQuery = document.getElementById('destFilter').value;
   items = items.filter(t=> matchesDestination(t, destQuery));
+
+  items = sortTrips(items, currentSort);
 
   if(!items.length){
     list.innerHTML = `<div class="empty-state">Nessun viaggio in questa categoria.</div>`;
@@ -1683,6 +1810,68 @@ function closeMenu(){
   document.body.style.overflow = '';
 }
 
+/* ======================= RIEPILOGO PER DESTINAZIONE ======================= */
+function allTripDestinations(){
+  const set = new Set();
+  TRIPS.forEach(t=>{ if(t.arrivo) set.add(t.arrivo); });
+  return [...set].sort((a,b)=> a.localeCompare(b,'it'));
+}
+function renderSummaryResult(){
+  const statiSel = new Set([...document.querySelectorAll('.summary-stato:checked')].map(c=>c.value));
+  const destSel = new Set([...document.querySelectorAll('.dest-checklist input:checked')].map(c=>c.value));
+  const counts = {};
+  let totale = 0;
+  TRIPS.forEach(t=>{
+    const st = tripStatus(t);
+    if(!statiSel.has(st)) return;
+    const dest = t.arrivo || '—';
+    if(!destSel.has(dest)) return;
+    counts[dest] = (counts[dest]||0) + 1;
+    totale++;
+  });
+  const rows = Object.entries(counts).sort((a,b)=> b[1]-a[1]);
+  const box = document.getElementById('summaryResult');
+  if(!rows.length){
+    box.innerHTML = `<p style="color:var(--slate-2); font-size:13px;">Nessun viaggio corrisponde ai filtri selezionati.</p>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="pivot-total">${totale} viaggio${totale===1?'':'i'} in totale</div>
+    ${rows.map(([dest,n])=> `<div class="pivot-row"><span class="pivot-dest">${dest}</span><span class="pivot-count">${n}</span></div>`).join('')}
+  `;
+}
+function populateSummaryDestChecklist(){
+  const wrap = document.getElementById('summaryDestList');
+  wrap.innerHTML = allTripDestinations().map(d=>
+    `<label><input type="checkbox" value="${d}" checked> ${d}</label>`
+  ).join('');
+  wrap.querySelectorAll('input').forEach(cb=> cb.addEventListener('change', renderSummaryResult));
+}
+function openSummary(){
+  populateSummaryDestChecklist();
+  renderSummaryResult();
+  document.getElementById('summaryOverlay').classList.add('open');
+  document.getElementById('summarySheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSummary(){
+  document.getElementById('summaryOverlay').classList.remove('open');
+  document.getElementById('summarySheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('summaryBtn').addEventListener('click', openSummary);
+document.getElementById('summaryOverlay').addEventListener('click', closeSummary);
+document.getElementById('summaryClose').addEventListener('click', closeSummary);
+document.querySelectorAll('.summary-stato').forEach(cb=> cb.addEventListener('change', renderSummaryResult));
+document.getElementById('summarySelAll').addEventListener('click', ()=>{
+  document.querySelectorAll('.dest-checklist input').forEach(cb=> cb.checked = true);
+  renderSummaryResult();
+});
+document.getElementById('summarySelNone').addEventListener('click', ()=>{
+  document.querySelectorAll('.dest-checklist input').forEach(cb=> cb.checked = false);
+  renderSummaryResult();
+});
+
 document.getElementById('menuBtn').addEventListener('click', openMenu);
 document.getElementById('menuOverlay').addEventListener('click', closeMenu);
 document.getElementById('menuClose').addEventListener('click', closeMenu);
@@ -1786,6 +1975,11 @@ destClearBtn.addEventListener('click', ()=>{
   destClearBtn.classList.remove('show');
   renderList();
   destFilterInput.focus();
+});
+
+document.getElementById('sortSelect').addEventListener('change', e=>{
+  currentSort = e.target.value;
+  renderList();
 });
 
 document.getElementById('mEnablePush').addEventListener('click', ()=>{
