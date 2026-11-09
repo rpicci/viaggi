@@ -1377,18 +1377,19 @@ function downloadJsonFile(){
 }
 
 /* ======================= RENDER LISTA ======================= */
-function renderStats(){
+function renderStats(src){
+  const base = src || TRIPS;
   const today = todayIso();
-  const tot = TRIPS.length;
-  const conf = TRIPS.filter(t=> tripStatus(t)==='confermato').length;
-  const upcoming = TRIPS.filter(t=>t.dataIso && t.dataIso>=today).slice().sort((a,b)=> a.dataIso.localeCompare(b.dataIso));
+  const tot = base.length;
+  const conf = base.filter(t=> tripStatus(t)==='confermato').length;
+  const upcoming = base.filter(t=>t.dataIso && t.dataIso>=today).slice().sort((a,b)=> a.dataIso.localeCompare(b.dataIso));
   const next = upcoming[0];
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-chip"><div class="n">${tot}</div><div class="l">Viaggi totali</div></div>
     <div class="stat-chip"><div class="n">${conf}</div><div class="l">Confermati</div></div>
     <div class="stat-chip"><div class="n">${next ? next.data.slice(0,5) : '—'}</div><div class="l">Prossima partenza</div></div>
   `;
-  document.getElementById('subCount').textContent = `${tot} viaggi in programma · ${conf} confermati`;
+  document.getElementById('subCount').textContent = `${tot} viaggi · ${conf} confermati`;
 }
 
 function legMiniRowHtml(leg){
@@ -1497,6 +1498,7 @@ function renderList(){
     items = items.filter(t=> (t.partecipanti||[]).some(p=> selectedPartecipanti.has(p)));
   }
 
+  renderStats(items);
   items = sortTrips(items, currentSort);
 
   if(!items.length){
@@ -1508,7 +1510,6 @@ function renderList(){
     });
   }
   populateDestList();
-  renderStats();
 }
 
 /* ======================= DETTAGLIO (view) ======================= */
